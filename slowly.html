@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Slowly (Oh So Slowly)</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-image: 
+        radial-gradient(ellipse 100% 100vh at center, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 1) 100%),
+        url('https://sedate.neocities.org/heafph.jpg');
+      overflow-y: scroll;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    html::-webkit-scrollbar, 
+    body::-webkit-scrollbar {
+      display: none;
+    }
+
+    #foreground {
+      position: relative;
+      z-index: 1;
+      pointer-events: auto;
+      margin-left: 40px;
+    }
+
+    .glow-text {
+      font-size: 2.5rem;
+      color: black;
+      -webkit-text-stroke: .5px white;
+      text-stroke: .5px white;
+      text-shadow:
+        -1px -1px 0 black,
+        1px -1px 0 black,
+        -1px 1px 0 black,
+        1px 1px 0 black;
+      cursor: default;
+      user-select: none;
+      display: inline-block;
+    }
+
+    .glow-char {
+      display: inline-block;
+      transition: text-shadow 0.1s;
+    }
+
+    summary::marker {
+      content: '';
+    }
+
+    summary::before {
+      content: '▸';
+      display: inline-block;
+      transition: transform 0.3s ease;
+      transform-origin: center;
+      font-size: 1.5rem;
+      margin-right: 8px;
+    }
+
+    details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .subtext {
+      color: black;
+      -webkit-text-stroke: .2px white;
+      text-stroke: .2px white;
+      font-size: 1.5rem;
+      margin-left: 10px;
+      display: block;
+      white-space: pre-wrap;
+      margin-top: 10px;
+    }
+
+    #lyricsDropdown {
+      margin-top: -25px;
+    }
+
+    /* Comment system styles */
+    #commentSection {
+      margin-left: 40px;
+      margin-top: 30px;
+      max-width: 600px;
+    }
+
+    #commentInput {
+      width: 100%;
+      height: 100px;
+      padding: 10px;
+      font-size: 1rem;
+      font-family: inherit;
+      background-color: rgba(0, 0, 0, 0.6);
+      color: white;
+      border: 1px solid white;
+      border-radius: 8px;
+      resize: vertical;
+    }
+
+    #commentInput::placeholder {
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      font-size: 1rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .comment {
+      margin-top: 15px;
+      padding: 10px;
+      border-left: 2px solid white;
+      color: white;
+      background-color: rgba(255, 255, 255, 0.05);
+      white-space: pre-wrap;
+      font-size: 1rem;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div id="foreground">
+    <h1 class="glow-text" id="glowHeading">Slowly (Oh So Slowly)</h1>
+    <details id="lyricsDropdown">
+      <summary class="glow-text"></summary>
+      <p class="glow-text subtext" id="glowSubtext">Potential, well, you're a loaded line
+The veil between the world and the faceless bride
+There's nothing yet but a bunch of white
+Oh potential, well, you're a loded line
+
+Tomorrow, well, I will wait for you
+Laying right here floating in this swimming pool
+There's a lot of things I've got left to do
+Oh tomorrow, but I'll wait for you
+
+The days keep slipping down into the cracks
+It takes a while to realise where you're at
+Slowly (so slowly)
+Slowly (so slowly)
+Slowly, it's slowly ending
+
+Dementia, you better treat me good
+The human race is in its second childhood
+I never learn but I understood
+Oh dementia, you better treat me good
+
+Sometimes I need a place to go
+Classical music plays from the radio
+I sit real still, let my shadow grow
+Yeah, sometimes I need a place to go
+
+My mind keeps slipping back into the past
+I hope someday I can get it back
+Slowly (so slowly)
+Slowly (so slowly)
+Slowly, they're slowly ending
+So slowly
+Slowly (so slowly)
+Slowly, slowly
+It's slowly ending
+
+And soon that train is going to pull away
+I hear it whistling, I try to wave at a glowing face
+They can't tell who I am
+Slowly (so slowly)
+Slowly (so slowly)
+Slowly, it's slowly ending</p>
+    </details>
+
+    <!-- Comment section -->
+    <div id="commentSection">
+      <h2 class="glow-text">Comments</h2>
+      <textarea id="commentInput" placeholder="Leave a comment about the lyrics..."></textarea>
+      <button onclick="submitComment()">Post Comment</button>
+      <div id="commentsContainer"></div>
+    </div>
+  </div>
+<script>
+  function throttle(fn, wait) {
+    let lastCall = 0;
+    return function (...args) {
+      const now = performance.now();
+      if (now - lastCall >= wait) {
+        fn(...args);
+        lastCall = now;
+      }
+    };
+  }
+
+  document.addEventListener('mousemove', e => {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+    throttledUpdateGlow();
+  });
+
+  function initGlowText() {
+    const heading = document.getElementById('glowHeading');
+    const subtext = document.getElementById('glowSubtext');
+
+    const headingText = heading.textContent;
+    heading.innerHTML = '';
+    for (let i = 0; i < headingText.length; i++) {
+      const char = headingText[i];
+      const span = document.createElement('span');
+      span.className = 'glow-char';
+      span.textContent = (char === ' ') ? '\u00A0' : char;
+      heading.appendChild(span);
+    }
+
+    const subtextLines = subtext.textContent.split('\n');
+    subtext.innerHTML = '';
+    subtextLines.forEach(line => {
+      const span = document.createElement('span');
+      span.className = 'glow-char';
+      span.textContent = line || '\u00A0';
+      subtext.appendChild(span);
+      subtext.appendChild(document.createElement('br'));
+    });
+  }
+
+  const throttledUpdateGlow = throttle(function updateGlow() {
+    const chars = document.querySelectorAll('.glow-char');
+    chars.forEach(char => {
+      const rect = char.getBoundingClientRect();
+      const charCenterX = rect.left + rect.width / 2;
+      const charCenterY = rect.top + rect.height / 2;
+
+      const distance = Math.sqrt(
+        Math.pow(mouseX - charCenterX, 2) + Math.pow(mouseY - charCenterY, 2)
+      );
+
+      const maxDistance = 200;
+      const intensity = Math.max(0, 1 - (distance / maxDistance));
+
+      const baseGlow = 0.3;
+      const maxIntensity = 1.5;
+      const glowValue = baseGlow + (intensity * maxIntensity);
+
+      char.style.textShadow = `
+        0 0 ${10 + intensity * 10}px rgba(255, 255, 255, ${glowValue}),
+        0 0 ${20 + intensity * 20}px rgba(255, 255, 255, ${glowValue * 0.8}),
+        0 0 ${30 + intensity * 30}px rgba(255, 255, 255, ${glowValue * 0.6})
+      `;
+    });
+  }, 1);
+
+  // === Backend Comment System ===
+
+  async function submitComment() {
+    const input = document.getElementById('commentInput');
+    const commentText = input.value.trim();
+    if (!commentText) return;
+
+    try {
+      const response = await fetch('http://localhost:3000/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: commentText })
+      });
+
+      if (response.ok) {
+        const newComment = await response.json();
+        renderComment(newComment);
+        input.value = '';
+      } else {
+        alert('Failed to post comment.');
+      }
+    } catch (error) {
+      console.error('Error submitting comment:', error);
+    }
+  }
+
+  function renderComment(comment) {
+    const commentDiv = document.createElement('div');
+    commentDiv.className = 'comment glow-text';
+    commentDiv.textContent = comment.text;
+    document.getElementById('commentsContainer').appendChild(commentDiv);
+  }
+
+  async function loadComments() {
+    try {
+      const response = await fetch('http://localhost:3000/comments');
+      if (response.ok) {
+        const comments = await response.json();
+        comments.forEach(renderComment);
+      }
+    } catch (error) {
+      console.error('Error loading comments:', error);
+    }
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    initGlowText();
+    loadComments();
+  });
+</script>
+
+</body>
+</html>
